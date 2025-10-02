@@ -1,301 +1,421 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#1a1a2e">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ExpenseTracker">
-  <title>💰 ExpenseTracker</title>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes slideIn {
-      from { transform: translateX(-100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
-    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-    .animate-slide-in { animation: slideIn 0.4s ease-out; }
-    .card { transition: transform 0.2s, box-shadow 0.2s; }
-    .card:active { transform: scale(0.98); }
-    .btn { transition: all 0.2s; }
-    .btn:active { transform: scale(0.95); }
-    .expense-item {
-      animation: slideIn 0.3s ease-out;
-      transition: all 0.2s;
-    }
-    .expense-item:active { transform: translateX(-10px); background: rgba(255,255,255,0.05); }
-    * { -webkit-tap-highlight-color: transparent; }
-    body { overscroll-behavior: none; }
-  </style>
-</head>
-<body data-theme="dark" class="bg-gradient-to-br from-base-200 to-base-300">
-  <div class="min-h-screen">
-    <div class="navbar bg-gradient-to-r from-primary to-secondary text-primary-content sticky top-0 z-50 shadow-lg">
-      <div class="flex-1">
-        <span class="text-xl font-bold">💰 ExpenseTracker</span>
-      </div>
-      <div class="flex-none">
-        <button onclick="exportData()" class="btn btn-ghost btn-sm text-white">📊</button>
-      </div>
-    </div>
-    
-    <div class="max-w-md mx-auto p-4 pb-20">
-      <div class="flex flex-col gap-4">
-        <div class="card bg-base-300 shadow-xl animate-fade-in" style="animation-delay: 0.1s">
-          <div class="card-body p-4">
-            <h3 class="font-semibold mb-3 text-primary flex items-center gap-2">
-              <span class="text-2xl">✨</span>
-              <span>Add New Expense</span>
-            </h3>
-            <div class="flex flex-col gap-3">
-              <input id="expense-amount" type="number" placeholder="💵 Amount ($)" class="input input-bordered w-full" step="0.01">
-              <input id="expense-desc" type="text" placeholder="📝 Description" class="input input-bordered w-full">
-              <select id="expense-category" class="select select-bordered w-full">
-                <option value="food">🍔 Food</option>
-                <option value="transport">🚗 Transport</option>
-                <option value="shopping">🛒 Shopping</option>
-                <option value="bills">💡 Bills</option>
-                <option value="entertainment">🎬 Entertainment</option>
-                <option value="other">📦 Other</option>
-              </select>
-              <input id="expense-date" type="date" class="input input-bordered w-full">
-              <button onclick="addExpense()" class="btn btn-primary btn-lg w-full shadow-lg">
-                <span class="text-lg">➕ Add Expense</span>
-              </button>
-            </div>
-          </div>
-        </div>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#6366f1">
+    <title>Expense Tracker</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overscroll-behavior: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
 
-        <div class="card bg-gradient-to-br from-base-300 to-base-200 shadow-xl animate-fade-in" style="animation-delay: 0.2s">
-          <div class="card-body p-4">
-            <h3 class="font-semibold mb-3 flex items-center gap-2">
-              <span class="text-xl">📊</span>
-              <span>Summary</span>
-            </h3>
-            <div class="grid grid-cols-3 gap-3">
-              <div class="bg-base-100 rounded-xl p-3 text-center shadow">
-                <div class="text-xs opacity-70 mb-1">Total</div>
-                <div id="stat-total" class="text-xl font-bold text-error">$0</div>
-              </div>
-              <div class="bg-base-100 rounded-xl p-3 text-center shadow">
-                <div class="text-xs opacity-70 mb-1">Month</div>
-                <div id="stat-month" class="text-xl font-bold text-warning">$0</div>
-              </div>
-              <div class="bg-base-100 rounded-xl p-3 text-center shadow">
-                <div class="text-xs opacity-70 mb-1">Count</div>
-                <div id="stat-count" class="text-xl font-bold text-info">0</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        #root {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
 
-        <div class="card bg-base-300 shadow-xl animate-fade-in" style="animation-delay: 0.3s">
-          <div class="card-body p-4">
-            <h3 class="font-semibold mb-3 flex items-center gap-2">
-              <span class="text-xl">🎯</span>
-              <span>Spending by Category</span>
-            </h3>
-            <div style="height: 220px;">
-              <canvas id="expense-chart"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="card bg-base-300 shadow-xl animate-fade-in" style="animation-delay: 0.4s">
-          <div class="card-body p-4">
-            <div class="flex justify-between items-center mb-3">
-              <h3 class="font-semibold flex items-center gap-2">
-                <span class="text-xl">📜</span>
-                <span>Recent Expenses</span>
-              </h3>
-              <button onclick="clearAll()" class="btn btn-ghost btn-xs text-error">🗑️ Clear</button>
-            </div>
-            <div id="expenses-list" class="flex flex-col gap-2">
-              <div class="text-center py-8 text-sm opacity-50">
-                <div class="text-4xl mb-2">💸</div>
-                <div>No expenses yet</div>
-                <div class="text-xs">Add your first one above!</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
-    let chart = null;
-
-    const categoryEmojis = {
-      food: '🍔', transport: '🚗', shopping: '🛒',
-      bills: '💡', entertainment: '🎬', other: '📦'
-    };
-
-    document.getElementById('expense-date').valueAsDate = new Date();
-
-    function addExpense() {
-      const amount = parseFloat(document.getElementById('expense-amount').value);
-      const desc = document.getElementById('expense-desc').value;
-      const category = document.getElementById('expense-category').value;
-      const date = document.getElementById('expense-date').value;
-
-      if (!amount || amount <= 0) {
-        const btn = event.target;
-        btn.classList.add('btn-error');
-        setTimeout(() => btn.classList.remove('btn-error'), 300);
-        return;
-      }
-
-      expenses.unshift({
-        id: Date.now(),
-        amount,
-        desc: desc || 'No description',
-        category,
-        date
-      });
-
-      localStorage.setItem('expenses', JSON.stringify(expenses));
-      document.getElementById('expense-amount').value = '';
-      document.getElementById('expense-desc').value = '';
-      
-      const btn = event.target;
-      btn.classList.add('btn-success');
-      btn.innerHTML = '<span class="text-lg">✅ Added!</span>';
-      setTimeout(() => {
-        btn.classList.remove('btn-success');
-        btn.innerHTML = '<span class="text-lg">➕ Add Expense</span>';
-      }, 1000);
-      
-      render();
-    }
-
-    function deleteExpense(id) {
-      expenses = expenses.filter(e => e.id !== id);
-      localStorage.setItem('expenses', JSON.stringify(expenses));
-      render();
-    }
-
-    function clearAll() {
-      if (confirm('Delete all expenses?')) {
-        expenses = [];
-        localStorage.setItem('expenses', JSON.stringify(expenses));
-        render();
-      }
-    }
-
-    function exportData() {
-      if (expenses.length === 0) return;
-      const csv = 'Date,Category,Description,Amount\\n' + 
-        expenses.map(e => \`\${e.date},\${e.category},"\${e.desc}",\${e.amount}\`).join('\\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'expenses.csv';
-      a.click();
-    }
-
-    function render() {
-      const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-      const currentMonth = new Date().getMonth();
-      const monthTotal = expenses.filter(e => 
-        new Date(e.date).getMonth() === currentMonth
-      ).reduce((sum, e) => sum + e.amount, 0);
-
-      document.getElementById('stat-total').textContent = '$' + total.toFixed(0);
-      document.getElementById('stat-month').textContent = '$' + monthTotal.toFixed(0);
-      document.getElementById('stat-count').textContent = expenses.length;
-
-      const list = document.getElementById('expenses-list');
-      if (expenses.length === 0) {
-        list.innerHTML = \`
-          <div class="text-center py-8 text-sm opacity-50">
-            <div class="text-4xl mb-2">💸</div>
-            <div>No expenses yet</div>
-            <div class="text-xs">Add your first one above!</div>
-          </div>
-        \`;
-      } else {
-        list.innerHTML = expenses.map(e => \`
-          <div class="expense-item flex justify-between items-center p-3 bg-base-100 rounded-xl shadow">
-            <div class="flex gap-3 items-center">
-              <span class="text-2xl">\${categoryEmojis[e.category]}</span>
-              <div>
-                <div class="font-semibold">\${e.desc}</div>
-                <div class="text-xs opacity-70">\${new Date(e.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</div>
-              </div>
-            </div>
-            <div class="flex gap-2 items-center">
-              <span class="font-bold text-error text-lg">$\${e.amount.toFixed(2)}</span>
-              <button onclick="deleteExpense(\${e.id})" class="btn btn-ghost btn-sm btn-circle">🗑️</button>
-            </div>
-          </div>
-        \`).join('');
-      }
-
-      const categoryTotals = expenses.reduce((acc, e) => {
-        acc[e.category] = (acc[e.category] || 0) + e.amount;
-        return acc;
-      }, {});
-
-      const chartData = {
-        labels: Object.keys(categoryEmojis).map(k => categoryEmojis[k] + ' ' + k.charAt(0).toUpperCase() + k.slice(1)),
-        datasets: [{
-          data: Object.keys(categoryEmojis).map(k => categoryTotals[k] || 0),
-          backgroundColor: [
-            'rgba(255, 99, 132, 0.8)',
-            'rgba(54, 162, 235, 0.8)',
-            'rgba(255, 206, 86, 0.8)',
-            'rgba(75, 192, 192, 0.8)',
-            'rgba(153, 102, 255, 0.8)',
-            'rgba(255, 159, 64, 0.8)'
-          ],
-          borderWidth: 0
-        }]
-      };
-
-      if (chart) {
-        chart.data = chartData;
-        chart.update('none');
-      } else {
-        chart = new Chart(document.getElementById('expense-chart'), {
-          type: 'doughnut',
-          data: chartData,
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: {
-                  boxWidth: 15,
-                  padding: 10,
-                  font: { size: 11 }
-                }
-              }
-            },
-            animation: {
-              animateRotate: true,
-              animateScale: true
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
             }
-          }
-        });
-      }
-    }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-    render();
-  </script>
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .slide-up {
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .scale-in {
+            animation: scaleIn 0.3s ease-out;
+        }
+
+        .pulse-once {
+            animation: pulse 0.3s ease-out;
+        }
+
+        .swipe-delete {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        .swipe-delete.swiping {
+            transform: translateX(-80px);
+        }
+
+        .swipe-delete.deleting {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        .glass {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .safe-area-top {
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-bg-alt {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        // Lucide icons as SVG components
+        const PlusIcon = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        );
+
+        const TrashIcon = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+        );
+
+        const XIcon = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        );
+
+        const categories = [
+            { name: 'Food', icon: '🍔', color: 'from-orange-400 to-red-500' },
+            { name: 'Transport', icon: '🚗', color: 'from-blue-400 to-cyan-500' },
+            { name: 'Shopping', icon: '🛍️', color: 'from-pink-400 to-purple-500' },
+            { name: 'Bills', icon: '💳', color: 'from-yellow-400 to-orange-500' },
+            { name: 'Entertainment', icon: '🎬', color: 'from-purple-400 to-indigo-500' },
+            { name: 'Health', icon: '⚕️', color: 'from-green-400 to-emerald-500' },
+            { name: 'Other', icon: '📌', color: 'from-gray-400 to-slate-500' }
+        ];
+
+        function ExpenseTracker() {
+            const [expenses, setExpenses] = useState([]);
+            const [showAddModal, setShowAddModal] = useState(false);
+            const [amount, setAmount] = useState('');
+            const [description, setDescription] = useState('');
+            const [selectedCategory, setSelectedCategory] = useState(categories[0]);
+            const [touchStart, setTouchStart] = useState(null);
+            const [touchEnd, setTouchEnd] = useState(null);
+            const [swipingId, setSwipingId] = useState(null);
+
+            useEffect(() => {
+                const saved = localStorage.getItem('expenses');
+                if (saved) {
+                    setExpenses(JSON.parse(saved));
+                }
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+            }, [expenses]);
+
+            const addExpense = () => {
+                if (!amount || parseFloat(amount) <= 0) return;
+
+                const newExpense = {
+                    id: Date.now(),
+                    amount: parseFloat(amount),
+                    description: description || selectedCategory.name,
+                    category: selectedCategory,
+                    date: new Date().toISOString()
+                };
+
+                setExpenses([newExpense, ...expenses]);
+                setAmount('');
+                setDescription('');
+                setShowAddModal(false);
+            };
+
+            const deleteExpense = (id) => {
+                setExpenses(expenses.filter(e => e.id !== id));
+            };
+
+            const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+            const onTouchStart = (e, id) => {
+                setTouchEnd(null);
+                setTouchStart(e.targetTouches[0].clientX);
+            };
+
+            const onTouchMove = (e, id) => {
+                setTouchEnd(e.targetTouches[0].clientX);
+                if (touchStart - e.targetTouches[0].clientX > 30) {
+                    setSwipingId(id);
+                } else {
+                    setSwipingId(null);
+                }
+            };
+
+            const onTouchEnd = (id) => {
+                if (!touchStart || !touchEnd) return;
+                const distance = touchStart - touchEnd;
+                const isLeftSwipe = distance > 50;
+                
+                if (isLeftSwipe && swipingId === id) {
+                    setTimeout(() => deleteExpense(id), 300);
+                } else {
+                    setSwipingId(null);
+                }
+                
+                setTouchStart(null);
+                setTouchEnd(null);
+            };
+
+            return (
+                <div className="h-full w-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-hidden">
+                    {/* Header */}
+                    <div className="safe-area-top px-6 pt-8 pb-6">
+                        <div className="fade-in">
+                            <h1 className="text-white text-3xl font-bold mb-2">Expenses</h1>
+                            <div className="bg-white/20 glass rounded-2xl p-6 scale-in">
+                                <p className="text-white/80 text-sm mb-1">Total Spending</p>
+                                <p className="text-white text-4xl font-bold">${totalExpenses.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Expenses List */}
+                    <div className="px-6 pb-24 overflow-y-auto" style={{ height: 'calc(100% - 260px)' }}>
+                        {expenses.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full fade-in">
+                                <div className="text-6xl mb-4">💸</div>
+                                <p className="text-white/80 text-lg">No expenses yet</p>
+                                <p className="text-white/60 text-sm mt-2">Tap + to add your first expense</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {expenses.map((expense, index) => (
+                                    <div
+                                        key={expense.id}
+                                        className="relative"
+                                        style={{ animationDelay: `${index * 0.05}s` }}
+                                    >
+                                        <div
+                                            className={`swipe-delete ${swipingId === expense.id ? 'swiping' : ''} slide-in bg-white rounded-2xl p-4 shadow-lg relative overflow-hidden`}
+                                            onTouchStart={(e) => onTouchStart(e, expense.id)}
+                                            onTouchMove={(e) => onTouchMove(e, expense.id)}
+                                            onTouchEnd={() => onTouchEnd(expense.id)}
+                                        >
+                                            <div className={`absolute inset-0 bg-gradient-to-r ${expense.category.color} opacity-10`}></div>
+                                            <div className="relative flex items-center justify-between">
+                                                <div className="flex items-center flex-1">
+                                                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${expense.category.color} flex items-center justify-center text-2xl mr-3 shadow-md`}>
+                                                        {expense.category.icon}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-gray-900 font-semibold truncate">{expense.description}</p>
+                                                        <p className="text-gray-500 text-sm">{new Date(expense.date).toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right ml-3">
+                                                    <p className="text-gray-900 font-bold text-lg">${expense.amount.toFixed(2)}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {swipingId === expense.id && (
+                                            <div className="absolute right-0 top-0 h-full flex items-center pr-4">
+                                                <button className="bg-red-500 text-white p-3 rounded-xl shadow-lg pulse-once">
+                                                    <TrashIcon />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Add Button */}
+                    <div className="absolute bottom-0 left-0 right-0 safe-area-bottom p-6">
+                        <button
+                            onClick={() => setShowAddModal(true)}
+                            className="w-full bg-white text-purple-600 rounded-2xl py-4 font-bold text-lg shadow-2xl flex items-center justify-center space-x-2 active:scale-95 transition-transform pulse-once"
+                        >
+                            <PlusIcon />
+                            <span>Add Expense</span>
+                        </button>
+                    </div>
+
+                    {/* Add Modal */}
+                    {showAddModal && (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end z-50 fade-in">
+                            <div className="w-full bg-white rounded-t-3xl slide-up safe-area-bottom">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-2xl font-bold text-gray-900">New Expense</h2>
+                                        <button
+                                            onClick={() => setShowAddModal(false)}
+                                            className="text-gray-400 hover:text-gray-600 active:scale-90 transition-transform"
+                                        >
+                                            <XIcon />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Amount</label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-gray-400">$</span>
+                                                <input
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    value={amount}
+                                                    onChange={(e) => setAmount(e.target.value)}
+                                                    placeholder="0.00"
+                                                    className="w-full pl-12 pr-4 py-4 text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Description (Optional)</label>
+                                            <input
+                                                type="text"
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                                placeholder="What did you buy?"
+                                                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Category</label>
+                                            <div className="grid grid-cols-4 gap-3">
+                                                {categories.map(cat => (
+                                                    <button
+                                                        key={cat.name}
+                                                        onClick={() => setSelectedCategory(cat)}
+                                                        className={`p-4 rounded-2xl transition-all ${
+                                                            selectedCategory.name === cat.name
+                                                                ? `bg-gradient-to-br ${cat.color} shadow-lg scale-105`
+                                                                : 'bg-gray-50 hover:bg-gray-100'
+                                                        }`}
+                                                    >
+                                                        <div className="text-3xl mb-1">{cat.icon}</div>
+                                                        <div className={`text-xs font-semibold ${
+                                                            selectedCategory.name === cat.name ? 'text-white' : 'text-gray-600'
+                                                        }`}>
+                                                            {cat.name}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={addExpense}
+                                            disabled={!amount || parseFloat(amount) <= 0}
+                                            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform mt-6"
+                                        >
+                                            Add Expense
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<ExpenseTracker />, document.getElementById('root'));
+    </script>
 </body>
 </html>
