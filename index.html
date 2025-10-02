@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ExpenseTracker">
+  <title>💰 ExpenseTracker</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+    .animate-slide-in { animation: slideIn 0.4s ease-out; }
+    .card { transition: transform 0.2s, box-shadow 0.2s; }
+    .card:active { transform: scale(0.98); }
+    .btn { transition: all 0.2s; }
+    .btn:active { transform: scale(0.95); }
+    .expense-item {
+      animation: slideIn 0.3s ease-out;
+      transition: all 0.2s;
+    }
+    .expense-item:active { transform: translateX(-10px); background: rgba(255,255,255,0.05); }
+    * { -webkit-tap-highlight-color: transparent; }
+    body { overscroll-behavior: none; }
+  </style>
+</head>
+<body data-theme="dark" class="bg-gradient-to-br from-base-200 to-base-300">
+  <div class="min-h-screen">
+    <div class="navbar bg-gradient-to-r from-primary to-secondary text-primary-content sticky top-0 z-50 shadow-lg">
+      <div class="flex-1">
+        <span class="text-xl font-bold">💰 ExpenseTracker</span>
+      </div>
+      <div class="flex-none">
+        <button onclick="exportData()" class="btn btn-ghost btn-sm text-white">📊</button>
+      </div>
+    </div>
+    
+    <div class="max-w-md mx-auto p-4 pb-20">
+      <div class="flex flex-col gap-4">
+        <div class="card bg-base-300 shadow-xl animate-fade-in" style="animation-delay: 0.1s">
+          <div class="card-body p-4">
+            <h3 class="font-semibold mb-3 text-primary flex items-center gap-2">
+              <span class="text-2xl">✨</span>
+              <span>Add New Expense</span>
+            </h3>
+            <div class="flex flex-col gap-3">
+              <input id="expense-amount" type="number" placeholder="💵 Amount ($)" class="input input-bordered w-full" step="0.01">
+              <input id="expense-desc" type="text" placeholder="📝 Description" class="input input-bordered w-full">
+              <select id="expense-category" class="select select-bordered w-full">
+                <option value="food">🍔 Food</option>
+                <option value="transport">🚗 Transport</option>
+                <option value="shopping">🛒 Shopping</option>
+                <option value="bills">💡 Bills</option>
+                <option value="entertainment">🎬 Entertainment</option>
+                <option value="other">📦 Other</option>
+              </select>
+              <input id="expense-date" type="date" class="input input-bordered w-full">
+              <button onclick="addExpense()" class="btn btn-primary btn-lg w-full shadow-lg">
+                <span class="text-lg">➕ Add Expense</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-gradient-to-br from-base-300 to-base-200 shadow-xl animate-fade-in" style="animation-delay: 0.2s">
+          <div class="card-body p-4">
+            <h3 class="font-semibold mb-3 flex items-center gap-2">
+              <span class="text-xl">📊</span>
+              <span>Summary</span>
+            </h3>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="bg-base-100 rounded-xl p-3 text-center shadow">
+                <div class="text-xs opacity-70 mb-1">Total</div>
+                <div id="stat-total" class="text-xl font-bold text-error">$0</div>
+              </div>
+              <div class="bg-base-100 rounded-xl p-3 text-center shadow">
+                <div class="text-xs opacity-70 mb-1">Month</div>
+                <div id="stat-month" class="text-xl font-bold text-warning">$0</div>
+              </div>
+              <div class="bg-base-100 rounded-xl p-3 text-center shadow">
+                <div class="text-xs opacity-70 mb-1">Count</div>
+                <div id="stat-count" class="text-xl font-bold text-info">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-300 shadow-xl animate-fade-in" style="animation-delay: 0.3s">
+          <div class="card-body p-4">
+            <h3 class="font-semibold mb-3 flex items-center gap-2">
+              <span class="text-xl">🎯</span>
+              <span>Spending by Category</span>
+            </h3>
+            <div style="height: 220px;">
+              <canvas id="expense-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-300 shadow-xl animate-fade-in" style="animation-delay: 0.4s">
+          <div class="card-body p-4">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="font-semibold flex items-center gap-2">
+                <span class="text-xl">📜</span>
+                <span>Recent Expenses</span>
+              </h3>
+              <button onclick="clearAll()" class="btn btn-ghost btn-xs text-error">🗑️ Clear</button>
+            </div>
+            <div id="expenses-list" class="flex flex-col gap-2">
+              <div class="text-center py-8 text-sm opacity-50">
+                <div class="text-4xl mb-2">💸</div>
+                <div>No expenses yet</div>
+                <div class="text-xs">Add your first one above!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+    let chart = null;
+
+    const categoryEmojis = {
+      food: '🍔', transport: '🚗', shopping: '🛒',
+      bills: '💡', entertainment: '🎬', other: '📦'
+    };
+
+    document.getElementById('expense-date').valueAsDate = new Date();
+
+    function addExpense() {
+      const amount = parseFloat(document.getElementById('expense-amount').value);
+      const desc = document.getElementById('expense-desc').value;
+      const category = document.getElementById('expense-category').value;
+      const date = document.getElementById('expense-date').value;
+
+      if (!amount || amount <= 0) {
+        const btn = event.target;
+        btn.classList.add('btn-error');
+        setTimeout(() => btn.classList.remove('btn-error'), 300);
+        return;
+      }
+
+      expenses.unshift({
+        id: Date.now(),
+        amount,
+        desc: desc || 'No description',
+        category,
+        date
+      });
+
+      localStorage.setItem('expenses', JSON.stringify(expenses));
+      document.getElementById('expense-amount').value = '';
+      document.getElementById('expense-desc').value = '';
+      
+      const btn = event.target;
+      btn.classList.add('btn-success');
+      btn.innerHTML = '<span class="text-lg">✅ Added!</span>';
+      setTimeout(() => {
+        btn.classList.remove('btn-success');
+        btn.innerHTML = '<span class="text-lg">➕ Add Expense</span>';
+      }, 1000);
+      
+      render();
+    }
+
+    function deleteExpense(id) {
+      expenses = expenses.filter(e => e.id !== id);
+      localStorage.setItem('expenses', JSON.stringify(expenses));
+      render();
+    }
+
+    function clearAll() {
+      if (confirm('Delete all expenses?')) {
+        expenses = [];
+        localStorage.setItem('expenses', JSON.stringify(expenses));
+        render();
+      }
+    }
+
+    function exportData() {
+      if (expenses.length === 0) return;
+      const csv = 'Date,Category,Description,Amount\\n' + 
+        expenses.map(e => \`\${e.date},\${e.category},"\${e.desc}",\${e.amount}\`).join('\\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'expenses.csv';
+      a.click();
+    }
+
+    function render() {
+      const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+      const currentMonth = new Date().getMonth();
+      const monthTotal = expenses.filter(e => 
+        new Date(e.date).getMonth() === currentMonth
+      ).reduce((sum, e) => sum + e.amount, 0);
+
+      document.getElementById('stat-total').textContent = '$' + total.toFixed(0);
+      document.getElementById('stat-month').textContent = '$' + monthTotal.toFixed(0);
+      document.getElementById('stat-count').textContent = expenses.length;
+
+      const list = document.getElementById('expenses-list');
+      if (expenses.length === 0) {
+        list.innerHTML = \`
+          <div class="text-center py-8 text-sm opacity-50">
+            <div class="text-4xl mb-2">💸</div>
+            <div>No expenses yet</div>
+            <div class="text-xs">Add your first one above!</div>
+          </div>
+        \`;
+      } else {
+        list.innerHTML = expenses.map(e => \`
+          <div class="expense-item flex justify-between items-center p-3 bg-base-100 rounded-xl shadow">
+            <div class="flex gap-3 items-center">
+              <span class="text-2xl">\${categoryEmojis[e.category]}</span>
+              <div>
+                <div class="font-semibold">\${e.desc}</div>
+                <div class="text-xs opacity-70">\${new Date(e.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</div>
+              </div>
+            </div>
+            <div class="flex gap-2 items-center">
+              <span class="font-bold text-error text-lg">$\${e.amount.toFixed(2)}</span>
+              <button onclick="deleteExpense(\${e.id})" class="btn btn-ghost btn-sm btn-circle">🗑️</button>
+            </div>
+          </div>
+        \`).join('');
+      }
+
+      const categoryTotals = expenses.reduce((acc, e) => {
+        acc[e.category] = (acc[e.category] || 0) + e.amount;
+        return acc;
+      }, {});
+
+      const chartData = {
+        labels: Object.keys(categoryEmojis).map(k => categoryEmojis[k] + ' ' + k.charAt(0).toUpperCase() + k.slice(1)),
+        datasets: [{
+          data: Object.keys(categoryEmojis).map(k => categoryTotals[k] || 0),
+          backgroundColor: [
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(255, 206, 86, 0.8)',
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(153, 102, 255, 0.8)',
+            'rgba(255, 159, 64, 0.8)'
+          ],
+          borderWidth: 0
+        }]
+      };
+
+      if (chart) {
+        chart.data = chartData;
+        chart.update('none');
+      } else {
+        chart = new Chart(document.getElementById('expense-chart'), {
+          type: 'doughnut',
+          data: chartData,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 15,
+                  padding: 10,
+                  font: { size: 11 }
+                }
+              }
+            },
+            animation: {
+              animateRotate: true,
+              animateScale: true
+            }
+          }
+        });
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
