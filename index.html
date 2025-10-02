@@ -5,12 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" content="#0f172a">
     <title>Expense Tracker</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        // Initialize EmailJS with your public key
+        // Replace 'YOUR_PUBLIC_KEY' with your actual EmailJS public key
+        // Get it from: https://dashboard.emailjs.com/admin/account
+        (function() {
+            emailjs.init("YOUR_PUBLIC_KEY"); // Replace this!
+        })();
+    </script>
     <style>
         * {
             -webkit-tap-highlight-color: transparent;
@@ -19,118 +28,58 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            overscroll-behavior: none;
             position: fixed;
             width: 100%;
             height: 100%;
             overflow: hidden;
+            background: #0f172a;
         }
 
         #root {
             width: 100%;
             height: 100%;
-            overflow: hidden;
         }
 
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(-15px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         @keyframes scaleIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
 
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-        }
-
-        .slide-up {
-            animation: slideUp 0.4s ease-out;
-        }
-
-        .slide-in {
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .scale-in {
-            animation: scaleIn 0.3s ease-out;
-        }
-
-        .pulse-once {
-            animation: pulse 0.3s ease-out;
-        }
+        .slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .slide-in { animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .scale-in { animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 
         .swipe-delete {
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
-        .swipe-delete.swiping {
-            transform: translateX(-80px);
-        }
-
-        .swipe-delete.deleting {
-            transform: translateX(-100%);
-            opacity: 0;
-        }
+        .swipe-delete.swiping { transform: translateX(-80px); }
+        .swipe-delete.deleting { transform: translateX(-100%); opacity: 0; }
 
         .glass {
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
         }
 
-        .safe-area-top {
-            padding-top: env(safe-area-inset-top);
-        }
-
-        .safe-area-bottom {
-            padding-bottom: env(safe-area-inset-bottom);
-        }
+        .safe-area-top { padding-top: max(env(safe-area-inset-top), 12px); }
+        .safe-area-bottom { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
 
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
@@ -138,12 +87,12 @@
             margin: 0;
         }
 
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .category-bar {
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .gradient-bg-alt {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        .tab-active {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
     </style>
 </head>
@@ -151,61 +100,110 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useMemo } = React;
         
-        // Lucide icons as SVG components
+        // Icons
         const PlusIcon = () => (
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
         );
 
         const TrashIcon = () => (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
         );
 
         const XIcon = () => (
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        );
+
+        const ChevronLeftIcon = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        );
+
+        const ChevronRightIcon = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+        );
+
+        const MailIcon = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+            </svg>
+        );
+
+        const SettingsIcon = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3"/>
             </svg>
         );
 
         const categories = [
-            { name: 'Food', icon: '🍔', color: 'from-orange-400 to-red-500' },
-            { name: 'Transport', icon: '🚗', color: 'from-blue-400 to-cyan-500' },
-            { name: 'Shopping', icon: '🛍️', color: 'from-pink-400 to-purple-500' },
-            { name: 'Bills', icon: '💳', color: 'from-yellow-400 to-orange-500' },
-            { name: 'Entertainment', icon: '🎬', color: 'from-purple-400 to-indigo-500' },
-            { name: 'Health', icon: '⚕️', color: 'from-green-400 to-emerald-500' },
-            { name: 'Other', icon: '📌', color: 'from-gray-400 to-slate-500' }
+            { name: 'Food', icon: '🍔', color: 'from-orange-500 to-red-600', bg: 'bg-orange-500' },
+            { name: 'Transport', icon: '🚗', color: 'from-blue-500 to-cyan-600', bg: 'bg-blue-500' },
+            { name: 'Shopping', icon: '🛍️', color: 'from-pink-500 to-purple-600', bg: 'bg-pink-500' },
+            { name: 'Bills', icon: '💳', color: 'from-yellow-500 to-orange-600', bg: 'bg-yellow-500' },
+            { name: 'Entertainment', icon: '🎬', color: 'from-purple-500 to-indigo-600', bg: 'bg-purple-500' },
+            { name: 'Health', icon: '⚕️', color: 'from-green-500 to-emerald-600', bg: 'bg-green-500' },
+            { name: 'Other', icon: '📌', color: 'from-gray-500 to-slate-600', bg: 'bg-gray-500' }
         ];
 
         function ExpenseTracker() {
-            // Initialize expenses from localStorage
             const [expenses, setExpenses] = useState(() => {
                 try {
                     const saved = localStorage.getItem('expenses');
                     return saved ? JSON.parse(saved) : [];
-                } catch (error) {
-                    console.error('Error loading expenses:', error);
+                } catch {
                     return [];
                 }
             });
             
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' or 'stats'
             const [showAddModal, setShowAddModal] = useState(false);
             const [amount, setAmount] = useState('');
             const [description, setDescription] = useState('');
             const [selectedCategory, setSelectedCategory] = useState(categories[0]);
             const [touchStart, setTouchStart] = useState(null);
-            const [touchEnd, setTouchEnd] = useState(null);
             const [swipingId, setSwipingId] = useState(null);
+            
+            // Email settings
+            const [showEmailSettings, setShowEmailSettings] = useState(false);
+            const [emailSettings, setEmailSettings] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('emailSettings');
+                    return saved ? JSON.parse(saved) : {
+                        email: 'mustafaadel275@gmail.com',
+                        monthlyReport: true,
+                        weeklyDigest: false,
+                        instantReceipt: false,
+                        serviceId: '',
+                        templateId: '',
+                        publicKey: ''
+                    };
+                } catch {
+                    return {
+                        email: 'mustafaadel275@gmail.com',
+                        monthlyReport: true,
+                        weeklyDigest: false,
+                        instantReceipt: false,
+                        serviceId: '',
+                        templateId: '',
+                        publicKey: ''
+                    };
+                }
+            });
+            const [sendingEmail, setSendingEmail] = useState(false);
 
-            // Save expenses to localStorage whenever they change
             useEffect(() => {
                 try {
                     localStorage.setItem('expenses', JSON.stringify(expenses));
@@ -213,6 +211,96 @@
                     console.error('Error saving expenses:', error);
                 }
             }, [expenses]);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('emailSettings', JSON.stringify(emailSettings));
+                } catch (error) {
+                    console.error('Error saving email settings:', error);
+                }
+            }, [emailSettings]);
+
+            // Email sending function
+            const sendMonthlyReport = async () => {
+                if (!emailSettings.serviceId || !emailSettings.templateId) {
+                    alert('Please configure EmailJS settings first!\n\nGo to Email Settings and add your Service ID and Template ID from EmailJS dashboard.');
+                    setShowEmailSettings(true);
+                    return;
+                }
+
+                setSendingEmail(true);
+                
+                try {
+                    const categoryBreakdown = categoryStats.map(stat => 
+                        `${stat.category.icon} ${stat.category.name}: ${stat.total.toFixed(2)} EGP (${stat.percentage.toFixed(1)}%)`
+                    ).join('\n');
+
+                    const expenseList = currentMonthExpenses.slice(0, 10).map(exp => 
+                        `• ${exp.description} - ${exp.amount.toFixed(2)} EGP (${new Date(exp.date).toLocaleDateString()})`
+                    ).join('\n');
+
+                    const emailParams = {
+                        to_email: emailSettings.email,
+                        to_name: 'User',
+                        month: monthName,
+                        total_spending: monthTotal.toFixed(2),
+                        transaction_count: currentMonthExpenses.length,
+                        top_category: categoryStats[0]?.category.name || 'N/A',
+                        top_category_amount: categoryStats[0]?.total.toFixed(2) || '0',
+                        category_breakdown: categoryBreakdown || 'No expenses this month',
+                        recent_expenses: expenseList || 'No expenses this month',
+                        report_date: new Date().toLocaleDateString()
+                    };
+
+                    await emailjs.send(
+                        emailSettings.serviceId,
+                        emailSettings.templateId,
+                        emailParams
+                    );
+
+                    alert('📧 Monthly report sent successfully to ' + emailSettings.email);
+                } catch (error) {
+                    console.error('Email error:', error);
+                    alert('Failed to send email. Please check your EmailJS configuration.\n\nError: ' + error.text);
+                } finally {
+                    setSendingEmail(false);
+                }
+            };
+
+            const currentMonthExpenses = useMemo(() => {
+                return expenses.filter(e => {
+                    const expenseDate = new Date(e.date);
+                    return expenseDate.getMonth() === currentDate.getMonth() &&
+                           expenseDate.getFullYear() === currentDate.getFullYear();
+                });
+            }, [expenses, currentDate]);
+
+            const monthTotal = useMemo(() => {
+                return currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
+            }, [currentMonthExpenses]);
+
+            const categoryStats = useMemo(() => {
+                const stats = {};
+                currentMonthExpenses.forEach(expense => {
+                    const catName = expense.category.name;
+                    if (!stats[catName]) {
+                        stats[catName] = {
+                            total: 0,
+                            count: 0,
+                            category: expense.category
+                        };
+                    }
+                    stats[catName].total += expense.amount;
+                    stats[catName].count += 1;
+                });
+                
+                return Object.values(stats)
+                    .sort((a, b) => b.total - a.total)
+                    .map(stat => ({
+                        ...stat,
+                        percentage: monthTotal > 0 ? (stat.total / monthTotal * 100) : 0
+                    }));
+            }, [currentMonthExpenses, monthTotal]);
 
             const addExpense = () => {
                 if (!amount || parseFloat(amount) <= 0) return;
@@ -233,18 +321,26 @@
 
             const deleteExpense = (id) => {
                 setExpenses(expenses.filter(e => e.id !== id));
+                setSwipingId(null);
             };
 
-            const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+            const changeMonth = (direction) => {
+                const newDate = new Date(currentDate);
+                newDate.setMonth(newDate.getMonth() + direction);
+                setCurrentDate(newDate);
+            };
+
+            const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const isCurrentMonth = currentDate.getMonth() === new Date().getMonth() && 
+                                   currentDate.getFullYear() === new Date().getFullYear();
 
             const onTouchStart = (e, id) => {
-                setTouchEnd(null);
                 setTouchStart(e.targetTouches[0].clientX);
             };
 
             const onTouchMove = (e, id) => {
-                setTouchEnd(e.targetTouches[0].clientX);
-                if (touchStart - e.targetTouches[0].clientX > 30) {
+                const touchEnd = e.targetTouches[0].clientX;
+                if (touchStart - touchEnd > 30) {
                     setSwipingId(id);
                 } else {
                     setSwipingId(null);
@@ -252,89 +348,224 @@
             };
 
             const onTouchEnd = (id) => {
-                if (!touchStart || !touchEnd) return;
-                const distance = touchStart - touchEnd;
-                const isLeftSwipe = distance > 50;
-                
-                if (isLeftSwipe && swipingId === id) {
-                    setTimeout(() => deleteExpense(id), 300);
-                } else {
-                    setSwipingId(null);
+                if (swipingId === id) {
+                    setTimeout(() => deleteExpense(id), 200);
                 }
-                
                 setTouchStart(null);
-                setTouchEnd(null);
             };
 
             return (
-                <div className="h-full w-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-hidden">
+                <div className="h-full w-full bg-slate-900 flex flex-col">
                     {/* Header */}
-                    <div className="safe-area-top px-6 pt-8 pb-6">
-                        <div className="fade-in">
-                            <h1 className="text-white text-3xl font-bold mb-2">Expenses</h1>
-                            <div className="bg-white/20 glass rounded-2xl p-6 scale-in">
-                                <p className="text-white/80 text-sm mb-1">Total Spending</p>
-                                <p className="text-white text-4xl font-bold">${totalExpenses.toFixed(2)}</p>
+                    <div className="safe-area-top bg-slate-900 px-5 py-4 fade-in">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h1 className="text-white text-2xl font-bold">Expenses</h1>
+                                <p className="text-slate-400 text-sm mt-0.5">Track your spending</p>
                             </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={sendMonthlyReport}
+                                    disabled={sendingEmail || currentMonthExpenses.length === 0}
+                                    className="p-3 bg-slate-800/50 glass rounded-xl text-violet-400 hover:bg-slate-700/50 transition-all active:scale-95 disabled:opacity-30"
+                                    title="Send Monthly Report"
+                                >
+                                    {sendingEmail ? (
+                                        <div className="w-5 h-5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <MailIcon />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setShowEmailSettings(true)}
+                                    className="p-3 bg-slate-800/50 glass rounded-xl text-slate-400 hover:bg-slate-700/50 transition-all active:scale-95"
+                                    title="Email Settings"
+                                >
+                                    <SettingsIcon />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Month Selector */}
+                        <div className="bg-slate-800/50 glass rounded-2xl p-4 mb-4 scale-in">
+                            <div className="flex items-center justify-between mb-3">
+                                <button 
+                                    onClick={() => changeMonth(-1)}
+                                    className="p-2 hover:bg-slate-700/50 rounded-xl transition-colors active:scale-95"
+                                >
+                                    <ChevronLeftIcon />
+                                </button>
+                                <div className="text-center flex-1">
+                                    <p className="text-white font-semibold">{monthName}</p>
+                                    {!isCurrentMonth ? (
+                                        <button 
+                                            onClick={() => setCurrentDate(new Date())}
+                                            className="text-violet-400 text-xs mt-0.5 hover:text-violet-300 active:scale-95 transition-all"
+                                        >
+                                            Jump to Today →
+                                        </button>
+                                    ) : (
+                                        <p className="text-slate-400 text-xs mt-0.5">Current month</p>
+                                    )}
+                                </div>
+                                <button 
+                                    onClick={() => changeMonth(1)}
+                                    className="p-2 hover:bg-slate-700/50 rounded-xl transition-colors active:scale-95"
+                                    disabled={isCurrentMonth}
+                                    style={{ opacity: isCurrentMonth ? 0.3 : 1 }}
+                                >
+                                    <ChevronRightIcon />
+                                </button>
+                            </div>
+                            
+                            <div className="bg-slate-900/50 rounded-xl p-4">
+                                <p className="text-slate-400 text-sm mb-1">Total Spending</p>
+                                <p className="text-white text-3xl font-bold">
+                                    {monthTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xl text-slate-400">EGP</span>
+                                </p>
+                                <p className="text-slate-400 text-xs mt-2">
+                                    {currentMonthExpenses.length} transaction{currentMonthExpenses.length !== 1 ? 's' : ''}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex bg-slate-800/50 glass rounded-2xl p-1">
+                            <button
+                                onClick={() => setActiveTab('expenses')}
+                                className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                                    activeTab === 'expenses' 
+                                        ? 'bg-violet-600 text-white shadow-lg' 
+                                        : 'text-slate-400'
+                                }`}
+                            >
+                                Transactions
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('stats')}
+                                className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                                    activeTab === 'stats' 
+                                        ? 'bg-violet-600 text-white shadow-lg' 
+                                        : 'text-slate-400'
+                                }`}
+                            >
+                                Statistics
+                            </button>
                         </div>
                     </div>
 
-                    {/* Expenses List */}
-                    <div className="px-6 pb-24 overflow-y-auto" style={{ height: 'calc(100% - 260px)' }}>
-                        {expenses.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full fade-in">
-                                <div className="text-6xl mb-4">💸</div>
-                                <p className="text-white/80 text-lg">No expenses yet</p>
-                                <p className="text-white/60 text-sm mt-2">Tap + to add your first expense</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {expenses.map((expense, index) => (
-                                    <div
-                                        key={expense.id}
-                                        className="relative"
-                                        style={{ animationDelay: `${index * 0.05}s` }}
-                                    >
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto px-5 pb-24">
+                        {activeTab === 'expenses' ? (
+                            currentMonthExpenses.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full fade-in">
+                                    <div className="text-6xl mb-4">📊</div>
+                                    <p className="text-slate-400 text-lg font-medium">No expenses yet</p>
+                                    <p className="text-slate-500 text-sm mt-2">Tap + to add your first expense</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2.5 pt-4">
+                                    {currentMonthExpenses.map((expense, index) => (
                                         <div
-                                            className={`swipe-delete ${swipingId === expense.id ? 'swiping' : ''} slide-in bg-white rounded-2xl p-4 shadow-lg relative overflow-hidden`}
-                                            onTouchStart={(e) => onTouchStart(e, expense.id)}
-                                            onTouchMove={(e) => onTouchMove(e, expense.id)}
-                                            onTouchEnd={() => onTouchEnd(expense.id)}
+                                            key={expense.id}
+                                            className="relative"
+                                            style={{ animationDelay: `${index * 0.05}s` }}
                                         >
-                                            <div className={`absolute inset-0 bg-gradient-to-r ${expense.category.color} opacity-10`}></div>
-                                            <div className="relative flex items-center justify-between">
-                                                <div className="flex items-center flex-1">
-                                                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${expense.category.color} flex items-center justify-center text-2xl mr-3 shadow-md`}>
-                                                        {expense.category.icon}
+                                            <div
+                                                className={`swipe-delete ${swipingId === expense.id ? 'swiping' : ''} slide-in bg-slate-800/80 glass rounded-2xl p-4 relative overflow-hidden`}
+                                                onTouchStart={(e) => onTouchStart(e, expense.id)}
+                                                onTouchMove={(e) => onTouchMove(e, expense.id)}
+                                                onTouchEnd={() => onTouchEnd(expense.id)}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center flex-1 min-w-0">
+                                                        <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${expense.category.color} flex items-center justify-center text-xl shadow-md mr-3 flex-shrink-0`}>
+                                                            {expense.category.icon}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-white font-semibold truncate">{expense.description}</p>
+                                                            <p className="text-slate-400 text-sm">
+                                                                {new Date(expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-gray-900 font-semibold truncate">{expense.description}</p>
-                                                        <p className="text-gray-500 text-sm">{new Date(expense.date).toLocaleDateString()}</p>
+                                                    <div className="text-right ml-3">
+                                                        <p className="text-white font-bold text-lg whitespace-nowrap">
+                                                            {expense.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                        </p>
+                                                        <p className="text-slate-400 text-xs">EGP</p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right ml-3">
-                                                    <p className="text-gray-900 font-bold text-lg">${expense.amount.toFixed(2)}</p>
+                                            </div>
+                                            {swipingId === expense.id && (
+                                                <div className="absolute right-3 top-0 h-full flex items-center">
+                                                    <button className="bg-red-500 text-white p-3 rounded-xl shadow-lg">
+                                                        <TrashIcon />
+                                                    </button>
                                                 </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )
+                        ) : (
+                            <div className="pt-4 pb-6 fade-in">
+                                {categoryStats.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-full py-20">
+                                        <div className="text-6xl mb-4">📈</div>
+                                        <p className="text-slate-400 text-lg font-medium">No data yet</p>
+                                        <p className="text-slate-500 text-sm mt-2">Add expenses to see statistics</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="bg-slate-800/50 glass rounded-2xl p-5 scale-in">
+                                            <h3 className="text-white font-bold text-lg mb-4">Top Spending Categories</h3>
+                                            <div className="space-y-4">
+                                                {categoryStats.map((stat, index) => (
+                                                    <div key={stat.category.name} className="slide-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div className="flex items-center">
+                                                                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${stat.category.color} flex items-center justify-center text-lg mr-3`}>
+                                                                    {stat.category.icon}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-white font-semibold text-sm">{stat.category.name}</p>
+                                                                    <p className="text-slate-400 text-xs">{stat.count} transaction{stat.count !== 1 ? 's' : ''}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-white font-bold">
+                                                                    {stat.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                                </p>
+                                                                <p className="text-slate-400 text-xs">EGP</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex-1 bg-slate-700/50 rounded-full h-2 overflow-hidden">
+                                                                <div 
+                                                                    className={`category-bar h-full ${stat.category.bg} rounded-full`}
+                                                                    style={{ width: `${stat.percentage}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-slate-400 text-xs font-medium w-12 text-right">
+                                                                {stat.percentage.toFixed(1)}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
-                                        {swipingId === expense.id && (
-                                            <div className="absolute right-0 top-0 h-full flex items-center pr-4">
-                                                <button className="bg-red-500 text-white p-3 rounded-xl shadow-lg pulse-once">
-                                                    <TrashIcon />
-                                                </button>
-                                            </div>
-                                        )}
                                     </div>
-                                ))}
+                                )}
                             </div>
                         )}
                     </div>
 
                     {/* Add Button */}
-                    <div className="absolute bottom-0 left-0 right-0 safe-area-bottom p-6">
+                    <div className="absolute bottom-0 left-0 right-0 safe-area-bottom p-5 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent pointer-events-none">
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="w-full bg-white text-purple-600 rounded-2xl py-4 font-bold text-lg shadow-2xl flex items-center justify-center space-x-2 active:scale-95 transition-transform pulse-once"
+                            className="w-full bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-2xl py-4 font-bold text-lg shadow-2xl flex items-center justify-center space-x-2 active:scale-95 transition-transform pointer-events-auto"
                         >
                             <PlusIcon />
                             <span>Add Expense</span>
@@ -343,14 +574,14 @@
 
                     {/* Add Modal */}
                     {showAddModal && (
-                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end z-50 fade-in">
-                            <div className="w-full bg-white rounded-t-3xl slide-up safe-area-bottom">
-                                <div className="p-6">
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end z-50 fade-in">
+                            <div className="w-full bg-slate-800 rounded-t-3xl slide-up safe-area-bottom">
+                                <div className="p-5">
                                     <div className="flex items-center justify-between mb-6">
-                                        <h2 className="text-2xl font-bold text-gray-900">New Expense</h2>
+                                        <h2 className="text-2xl font-bold text-white">New Expense</h2>
                                         <button
                                             onClick={() => setShowAddModal(false)}
-                                            className="text-gray-400 hover:text-gray-600 active:scale-90 transition-transform"
+                                            className="text-slate-400 hover:text-white active:scale-90 transition-all"
                                         >
                                             <XIcon />
                                         </button>
@@ -358,47 +589,46 @@
 
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Amount</label>
+                                            <label className="text-sm font-semibold text-slate-300 mb-2 block">Amount (EGP)</label>
                                             <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-gray-400">$</span>
                                                 <input
                                                     type="number"
                                                     inputMode="decimal"
                                                     value={amount}
                                                     onChange={(e) => setAmount(e.target.value)}
                                                     placeholder="0.00"
-                                                    className="w-full pl-12 pr-4 py-4 text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none"
+                                                    className="w-full px-4 py-4 text-2xl font-bold bg-slate-700/50 border-2 border-slate-600 text-white placeholder-slate-500 rounded-2xl focus:border-violet-500 focus:outline-none"
                                                 />
                                             </div>
                                         </div>
 
                                         <div>
-                                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Description (Optional)</label>
+                                            <label className="text-sm font-semibold text-slate-300 mb-2 block">Description</label>
                                             <input
                                                 type="text"
                                                 value={description}
                                                 onChange={(e) => setDescription(e.target.value)}
                                                 placeholder="What did you buy?"
-                                                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none"
+                                                className="w-full px-4 py-3 bg-slate-700/50 border-2 border-slate-600 text-white placeholder-slate-500 rounded-2xl focus:border-violet-500 focus:outline-none"
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Category</label>
+                                            <label className="text-sm font-semibold text-slate-300 mb-3 block">Category</label>
                                             <div className="grid grid-cols-4 gap-3">
                                                 {categories.map(cat => (
                                                     <button
                                                         key={cat.name}
                                                         onClick={() => setSelectedCategory(cat)}
-                                                        className={`p-4 rounded-2xl transition-all ${
+                                                        className={`p-3 rounded-2xl transition-all ${
                                                             selectedCategory.name === cat.name
                                                                 ? `bg-gradient-to-br ${cat.color} shadow-lg scale-105`
-                                                                : 'bg-gray-50 hover:bg-gray-100'
+                                                                : 'bg-slate-700/50 hover:bg-slate-700'
                                                         }`}
                                                     >
-                                                        <div className="text-3xl mb-1">{cat.icon}</div>
+                                                        <div className="text-2xl mb-1">{cat.icon}</div>
                                                         <div className={`text-xs font-semibold ${
-                                                            selectedCategory.name === cat.name ? 'text-white' : 'text-gray-600'
+                                                            selectedCategory.name === cat.name ? 'text-white' : 'text-slate-300'
                                                         }`}>
                                                             {cat.name}
                                                         </div>
@@ -410,9 +640,162 @@
                                         <button
                                             onClick={addExpense}
                                             disabled={!amount || parseFloat(amount) <= 0}
-                                            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform mt-6"
+                                            className="w-full bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-2xl py-4 font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform mt-6"
                                         >
                                             Add Expense
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Email Settings Modal */}
+                    {showEmailSettings && (
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end z-50 fade-in">
+                            <div className="w-full bg-slate-800 rounded-t-3xl slide-up safe-area-bottom max-h-[90vh] overflow-y-auto">
+                                <div className="p-5">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-2xl font-bold text-white">Email Settings</h2>
+                                        <button
+                                            onClick={() => setShowEmailSettings(false)}
+                                            className="text-slate-400 hover:text-white active:scale-90 transition-all"
+                                        >
+                                            <XIcon />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        {/* Setup Instructions */}
+                                        <div className="bg-violet-500/10 border-2 border-violet-500/30 rounded-2xl p-4">
+                                            <h3 className="text-violet-400 font-bold mb-2 flex items-center gap-2">
+                                                📧 EmailJS Setup Required
+                                            </h3>
+                                            <p className="text-slate-300 text-sm mb-3">
+                                                To send emails, you need a free EmailJS account:
+                                            </p>
+                                            <ol className="text-slate-300 text-sm space-y-2 list-decimal list-inside">
+                                                <li>Go to <a href="https://www.emailjs.com/" target="_blank" className="text-violet-400 underline">emailjs.com</a> and sign up</li>
+                                                <li>Create an Email Service (Gmail recommended)</li>
+                                                <li>Create an Email Template (copy template ID)</li>
+                                                <li>Get your Public Key from Account page</li>
+                                                <li>Paste the IDs below</li>
+                                            </ol>
+                                        </div>
+
+                                        {/* Email Template Guide */}
+                                        <div className="bg-slate-700/30 rounded-2xl p-4">
+                                            <h3 className="text-white font-semibold mb-2">📝 Email Template Variables</h3>
+                                            <p className="text-slate-400 text-sm mb-2">Use these in your EmailJS template:</p>
+                                            <div className="bg-slate-900/50 rounded-xl p-3 text-xs font-mono text-slate-300 space-y-1">
+                                                <div>{'{{month}}'} - Month name</div>
+                                                <div>{'{{total_spending}}'} - Total amount</div>
+                                                <div>{'{{transaction_count}}'} - # of transactions</div>
+                                                <div>{'{{top_category}}'} - Top spending category</div>
+                                                <div>{'{{category_breakdown}}'} - Full breakdown</div>
+                                                <div>{'{{recent_expenses}}'} - Latest expenses</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Configuration */}
+                                        <div>
+                                            <label className="text-sm font-semibold text-slate-300 mb-2 block">Your Email</label>
+                                            <input
+                                                type="email"
+                                                value={emailSettings.email}
+                                                onChange={(e) => setEmailSettings({...emailSettings, email: e.target.value})}
+                                                placeholder="your@email.com"
+                                                className="w-full px-4 py-3 bg-slate-700/50 border-2 border-slate-600 text-white placeholder-slate-500 rounded-2xl focus:border-violet-500 focus:outline-none"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-semibold text-slate-300 mb-2 block">Service ID</label>
+                                            <input
+                                                type="text"
+                                                value={emailSettings.serviceId}
+                                                onChange={(e) => setEmailSettings({...emailSettings, serviceId: e.target.value})}
+                                                placeholder="service_xxxxxxx"
+                                                className="w-full px-4 py-3 bg-slate-700/50 border-2 border-slate-600 text-white placeholder-slate-500 rounded-2xl focus:border-violet-500 focus:outline-none font-mono text-sm"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-semibold text-slate-300 mb-2 block">Template ID</label>
+                                            <input
+                                                type="text"
+                                                value={emailSettings.templateId}
+                                                onChange={(e) => setEmailSettings({...emailSettings, templateId: e.target.value})}
+                                                placeholder="template_xxxxxxx"
+                                                className="w-full px-4 py-3 bg-slate-700/50 border-2 border-slate-600 text-white placeholder-slate-500 rounded-2xl focus:border-violet-500 focus:outline-none font-mono text-sm"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-semibold text-slate-300 mb-2 block">Public Key</label>
+                                            <input
+                                                type="text"
+                                                value={emailSettings.publicKey}
+                                                onChange={(e) => {
+                                                    setEmailSettings({...emailSettings, publicKey: e.target.value});
+                                                    // Re-initialize EmailJS with new key
+                                                    if (e.target.value && window.emailjs) {
+                                                        emailjs.init(e.target.value);
+                                                    }
+                                                }}
+                                                placeholder="Your public key"
+                                                className="w-full px-4 py-3 bg-slate-700/50 border-2 border-slate-600 text-white placeholder-slate-500 rounded-2xl focus:border-violet-500 focus:outline-none font-mono text-sm"
+                                            />
+                                        </div>
+
+                                        {/* Email Preferences */}
+                                        <div className="border-t-2 border-slate-700 pt-6">
+                                            <h3 className="text-white font-semibold mb-4">Email Preferences</h3>
+                                            <div className="space-y-3">
+                                                <label className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl cursor-pointer">
+                                                    <div>
+                                                        <p className="text-white font-medium">Monthly Reports</p>
+                                                        <p className="text-slate-400 text-sm">Summary at end of month</p>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={emailSettings.monthlyReport}
+                                                        onChange={(e) => setEmailSettings({...emailSettings, monthlyReport: e.target.checked})}
+                                                        className="w-5 h-5 accent-violet-600"
+                                                    />
+                                                </label>
+                                                <label className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl cursor-pointer">
+                                                    <div>
+                                                        <p className="text-white font-medium">Weekly Digest</p>
+                                                        <p className="text-slate-400 text-sm">Every Sunday</p>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={emailSettings.weeklyDigest}
+                                                        onChange={(e) => setEmailSettings({...emailSettings, weeklyDigest: e.target.checked})}
+                                                        className="w-5 h-5 accent-violet-600"
+                                                    />
+                                                </label>
+                                                <label className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl cursor-pointer">
+                                                    <div>
+                                                        <p className="text-white font-medium">Instant Receipts</p>
+                                                        <p className="text-slate-400 text-sm">Email after each expense</p>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={emailSettings.instantReceipt}
+                                                        onChange={(e) => setEmailSettings({...emailSettings, instantReceipt: e.target.checked})}
+                                                        className="w-5 h-5 accent-violet-600"
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setShowEmailSettings(false)}
+                                            className="w-full bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-2xl py-4 font-bold text-lg shadow-lg active:scale-95 transition-transform"
+                                        >
+                                            Save Settings
                                         </button>
                                     </div>
                                 </div>
