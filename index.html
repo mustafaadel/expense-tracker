@@ -186,7 +186,17 @@
         ];
 
         function ExpenseTracker() {
-            const [expenses, setExpenses] = useState([]);
+            // Initialize expenses from localStorage
+            const [expenses, setExpenses] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('expenses');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (error) {
+                    console.error('Error loading expenses:', error);
+                    return [];
+                }
+            });
+            
             const [showAddModal, setShowAddModal] = useState(false);
             const [amount, setAmount] = useState('');
             const [description, setDescription] = useState('');
@@ -195,15 +205,13 @@
             const [touchEnd, setTouchEnd] = useState(null);
             const [swipingId, setSwipingId] = useState(null);
 
+            // Save expenses to localStorage whenever they change
             useEffect(() => {
-                const saved = localStorage.getItem('expenses');
-                if (saved) {
-                    setExpenses(JSON.parse(saved));
+                try {
+                    localStorage.setItem('expenses', JSON.stringify(expenses));
+                } catch (error) {
+                    console.error('Error saving expenses:', error);
                 }
-            }, []);
-
-            useEffect(() => {
-                localStorage.setItem('expenses', JSON.stringify(expenses));
             }, [expenses]);
 
             const addExpense = () => {
